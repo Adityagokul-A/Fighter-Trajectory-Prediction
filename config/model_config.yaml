@@ -1,0 +1,10 @@
+model:
+  input_dim: 11          # [x,y,z, vx,vy,vz, spd, acc, sin, cos, turn]
+  hidden_dim: 128        # RNN hidden size
+  num_layers: 2          # GRU layers
+  num_regimes: 6         # Number of latent maneuver modes
+  regime_embed_dim: 32   # Dimension of the regime vector
+  
+  # Window definitions
+  input_window: 30       # Past N steps (e.g. 30 * 10s = 5 min history)
+  pred_window: 10        # Future k steps (e.g. 10 * 10s = 100s prediction)

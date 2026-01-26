@@ -1,0 +1,25 @@
+# Data
+data/
+dataset/
+*.csv
+*.pt
+*.pth
+
+# Model Checkpoints & Logs
+checkpoints/
+logs/
+*.png
+*.jpg
+
+# Python cache
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+
+# Virtual Env
+venv/
+env/
+.env
+
+# OS specific
+.DS_Store

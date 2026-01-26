@@ -1,72 +1,95 @@
-Fighter Aircraft Trajectory Prediction
+# Fighter Aircraft Trajectory Prediction
 
-A Deep Learning framework for predicting future trajectories of fighter aircraft using kinematic history and latent maneuver recognition. This project models the aircraft as a hybrid dynamical system, separating continuous motion from discrete latent maneuvers.
+A deep learning framework for predicting future trajectories of fighter aircraft using kinematic history and **latent maneuver recognition**.  
+The aircraft is modeled as a **hybrid dynamical system**, separating continuous motion from discrete latent maneuvers.
 
-1. Design Summary
+---
 
-1.1 Input
+## 1. Design Summary
 
-Raw Input Data (per aircraft, per timestep):
+### 1.1 Input
+
+#### Raw Input Data (per aircraft, per timestep)
 Derived from ADS-B–like logs:
 
-CTN: Unique aircraft ID (handling reuse/gaps).
+- **CTN**: Unique aircraft ID (handling reuse and long gaps)
+- **TIME_IST**: Timestamp
+- **Latitude**, **Longitude**
+- **Geo Altitude**
+- **Speed**
+- **Course**
 
-TIME_IST: Timestamp.
+#### Preprocessing
 
-Latitude, Longitude, Geo Altitude, Speed, Course.
+- **Temporal Resampling**: Fixed interval (10 s)
+- **Savitzky–Golay Filtering**:
+  - Smooths raw position signals
+  - Derives clean kinematic quantities (Acceleration, Turn Rate)
+- **Coordinate Transform**:
+  - WGS84 (Lat/Lon) → Local **ENU** (East–North–Up)
+- **Translation Invariance**:
+  - Spatial origin reset to aircraft position at current time \( t \)
 
-Preprocessing:
+#### Final Input Features (\(N \times 11\))
 
-Temporal resampling to a fixed interval (10s).
+\[
+[x, y, z, v_x, v_y, v_z, \text{speed}, \text{acceleration}, \sin(\text{course}), \cos(\text{course}), \text{turn\_rate}]
+\]
 
-Savitzky-Golay Filtering: Used to smooth raw position data and derive clean derivatives (Acceleration, Turn Rate).
+---
 
-Coordinate Transform: WGS84 (Lat/Lon) $\rightarrow$ Local ENU (East-North-Up).
+### 1.2 Problem Statement
 
-Translation Invariance: Origin reset to aircraft position at current time $t$.
+Given the last \( N \) observed kinematic states of a fighter aircraft, predict its future trajectory over the next \( k \) timesteps.
 
-Final Input Features ($N \times 11$):
+**Constraints**
+- No flight plans, waypoints, or cooperative intent signals
 
+**Key Challenge**
+- Future motion depends on **latent maneuvers** (e.g., high-G turn vs. cruise) that are not directly observed.
 
-$$[x, y, z, v_x, v_y, v_z, \text{speed}, \text{acceleration}, \sin(\text{course}), \cos(\text{course}), \text{turn\_rate}]$$
+---
 
-1.2 Problem Statement
+### 1.3 Solution Architecture
 
-Given the last $N$ observed kinematic states, predict the future trajectory over the next $k$ timesteps.
+**Latent-Regime–Conditioned Seq2Seq Model**
 
-Constraint: No flight plans or cooperative intent signals.
+- **Encoder (GRU)**  
+  Consumes past kinematic history (\( N \) steps)
 
-Challenge: Future motion depends on latent maneuvers (e.g., High-G turn vs. Cruise) which are unobserved.
+- **Regime Head**  
+  Infers a soft probability distribution over \( K \) latent maneuver regimes
 
-1.3 Solution Architecture
+- **Decoder (GRU)**  
+  Autoregressively predicts future motion deltas, conditioned on the regime embedding
 
-Latent-Regime Conditioned Seq2Seq:
+---
 
-Encoder (GRU): Consumes past kinematic history ($N$ steps).
+### 1.4 Training Objective
 
-Regime Head: Infers a soft probability distribution over $K$ latent regimes.
+The model is trained end-to-end using a composite loss:
 
-Decoder (GRU): Autoregressively predicts future motion deltas, conditioned on the regime embedding.
+- **Position Loss (MSE)**  
+  Ensures accurate future trajectory prediction
 
-1.4 Training Objective
+- **Smoothness Loss**  
+  Penalizes physically implausible jerk / acceleration oscillations
 
-The model is trained end-to-end using a composite loss function:
+- **Entropy Regularization**  
+  Maximizes **batch-level regime diversity** (mutual information) to prevent regime collapse
 
-Position Loss (MSE): Accuracy of future trajectory.
+---
 
-Smoothness Loss: Penalizes physically impossible jerk/acceleration changes.
-
-Entropy Regularization: Maximizes batch diversity (Mutual Information) to prevent regime collapse.
-
-2. Project Structure
+## 2. Project Structure
+```text
 
 fighter_traj_pred/
-├── config/               # YAML configuration files
+├── configs/               # YAML configuration files
 │   ├── model_config.yaml  # Model hyperparameters (layers, hidden_dim)
 │   └── train_config.yaml  # Training parameters (lr, epochs, loss weights)
-|
-├── dataset/                  # Data storage
-|
+├── data/                  # Data storage
+│   ├── raw/               # Original CSV logs
+│   └── processed/         # Smoothed ENU tensors
 ├── src/
 │   ├── data/              # Preprocessing, Smoothing, and Dataset class
 │   ├── models/            # Encoder, Decoder, and RegimeHead modules
@@ -76,36 +99,19 @@ fighter_traj_pred/
 │   └── inference.py       # Visualization and testing script
 └── requirements.txt
 
+```
+---
 
-3. Usage
+## 3. Usage
 
-Installation
+This section describes how to set up the environment, preprocess data, train the model, and visualize predictions. All experiments are **configuration-driven** via YAML files—no code changes are required to modify hyperparameters.
 
+
+### 3.1 Installation
+
+Install all required Python dependencies:
+
+```bash
 pip install -r requirements.txt
 
 
-Data Preparation
-
-Place your raw logs in data/raw/ and run the smoothing pipeline:
-
-# Runs the Savitzky-Golay filter and ENU transformation
-python -m src.data.smoothing
-
-
-Training
-
-To train the model using parameters defined in configs/train_config.yaml:
-
-python -m scripts.train
-
-
-Visualization
-
-To generate trajectory plots from the validation set:
-
-python -m scripts.inference
-
-
-4. Acknowledgments & Attribution
-
-This project had the assistance of Google Gemini and ChatGPT for editing scripts.

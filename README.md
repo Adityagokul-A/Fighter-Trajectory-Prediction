@@ -87,9 +87,8 @@ fighter_traj_pred/
 ├── configs/               # YAML configuration files
 │   ├── model_config.yaml  # Model hyperparameters (layers, hidden_dim)
 │   └── train_config.yaml  # Training parameters (lr, epochs, loss weights)
-├── data/                  # Data storage
-│   ├── raw/               # Original CSV logs
-│   └── processed/         # Smoothed ENU tensors
+├── dataset/                  # Data storage
+│                
 ├── src/
 │   ├── data/              # Preprocessing, Smoothing, and Dataset class
 │   ├── models/            # Encoder, Decoder, and RegimeHead modules
@@ -113,5 +112,28 @@ Install all required Python dependencies:
 
 ```bash
 pip install -r requirements.txt
+```
+
+### 3.2 Training
+
+To train the model using parameters defined in configs/train_config.yaml:
+
+```bash
+python -m scripts.train
+```
+---
+
+### 3.3 Visualization
+
+To generate trajectory plots from the validation set:
+
+```bash
+python -m scripts.inference
+```
+---
+
+## 4. Acknowledgments & Attribution
+
+This project had the assistance of Google Gemini and ChatGPT for editing scripts.
 
 

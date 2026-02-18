@@ -145,6 +145,101 @@ def run_long_inference(extended_horizon=40):
                 line=dict(color='#ff00ff', width=6, dash='solid') # Magenta
             ))
 
+            # 4.5. Plot a 20-degree funnel outline originating at the current position
+            # Assumption: funnel half-angle = 20 degrees, oriented along the initial true future vector
+            try:
+                angle_deg = 20.0
+                angle_rad = np.deg2rad(angle_deg)
+
+                # Determine forward direction from true future (use first future point)
+                # path_gt has the inserted [0,0,0] at index 0
+                if path_gt.shape[0] > 1:
+                    fwd_vec = path_gt[1] - path_gt[0]
+                else:
+                    fwd_vec = np.array([1.0, 0.0, 0.0])
+
+                fwd_norm = np.linalg.norm(fwd_vec)
+                if fwd_norm < 1e-6:
+                    # fallback direction if negligible motion
+                    fwd = np.array([1.0, 0.0, 0.0])
+                else:
+                    fwd = fwd_vec / fwd_norm
+
+                # Build orthonormal basis (u, v) perpendicular to fwd
+                # pick arbitrary up vector not parallel to fwd
+                arbitrary = np.array([0.0, 0.0, 1.0])
+                if abs(np.dot(arbitrary, fwd)) > 0.99:
+                    arbitrary = np.array([0.0, 1.0, 0.0])
+                u = np.cross(fwd, arbitrary)
+                u = u / (np.linalg.norm(u) + 1e-12)
+                v = np.cross(fwd, u)
+                v = v / (np.linalg.norm(v) + 1e-12)
+
+                # Maximum range to draw funnel: use the larger of GT/pred endpoint norms
+                max_gt = np.linalg.norm(path_gt, axis=1).max()
+                max_pred = np.linalg.norm(path_pred, axis=1).max()
+                max_range = max(max_gt, max_pred)
+                if max_range < 1e-3:
+                    max_range = 100.0  # default 100 m if degenerate
+
+                # Number of cross-sections and points per circle
+                n_sections = 6
+                n_circle = 36
+
+                distances = np.linspace(0.0, max_range, n_sections + 1)[1:]
+
+                # Generate circular cross-sections and radial edges
+                circle_traces_x = []
+                circle_traces_y = []
+                circle_traces_z = []
+
+                radial_lines = []  # each is tuple of (xs, ys, zs)
+
+                thetas = np.linspace(0, 2 * np.pi, n_circle + 1)
+                for d in distances:
+                    radius = d * np.tan(angle_rad)
+                    circle_pts = []
+                    for th in thetas:
+                        pt = (fwd * d) + radius * (np.cos(th) * u + np.sin(th) * v)
+                        circle_pts.append(pt)
+                    circle_pts = np.stack(circle_pts, axis=0)  # [n_circle+1, 3]
+                    circle_traces_x.append(circle_pts[:, 0])
+                    circle_traces_y.append(circle_pts[:, 1])
+                    circle_traces_z.append(circle_pts[:, 2])
+
+                # Build a single-sided translucent cone surface (no base) with tip at origin
+                # Compute outer circle at max_range and create triangular fan from tip to ring
+                thetas = np.linspace(0, 2 * np.pi, n_circle, endpoint=False)
+                outer_pts = []
+                radius_outer = max_range * np.tan(angle_rad)
+                for th in thetas:
+                    pt = (fwd * max_range) + radius_outer * (np.cos(th) * u + np.sin(th) * v)
+                    outer_pts.append(pt)
+
+                # Vertices: tip (origin) first, then outer ring points
+                verts = np.vstack([np.array([0.0, 0.0, 0.0]), np.stack(outer_pts, axis=0)])
+                X = verts[:, 0].tolist()
+                Y = verts[:, 1].tolist()
+                Z = verts[:, 2].tolist()
+
+                # Triangles: fan from tip (index 0) to each adjacent pair on outer ring
+                i_idx, j_idx, k_idx = [], [], []
+                for t in range(n_circle):
+                    a = 0
+                    b = t + 1
+                    c = ((t + 1) % n_circle) + 1
+                    i_idx.append(a); j_idx.append(b); k_idx.append(c)
+
+                fig.add_trace(go.Mesh3d(
+                    x=X, y=Y, z=Z,
+                    i=i_idx, j=j_idx, k=k_idx,
+                    color='yellow', opacity=0.25,
+                    name='Cone', showlegend=False
+                ))
+            except Exception as e:
+                # Non-fatal: if funnel generation fails, continue without it
+                print(f"[Warning] Funnel overlay generation failed: {e}")
+
             # 4. Mark "Current Position" (White Orb)
             fig.add_trace(go.Scatter3d(
                 x=[0], y=[0], z=[0],

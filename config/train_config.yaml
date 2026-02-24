@@ -1,0 +1,26 @@
+training:
+  # --- Hardware & Execution ---
+  device: "cuda"              # Will fallback to CPU if CUDA is unavailable
+  batch_size: 64              # Number of flight sequences per batch
+  num_workers: 4              # CPU threads for the DataLoader
+  val_fraction: 0.10          # 10% of UNIQUE flights reserved for zero-leakage validation
+  checkpoint_dir: "checkpoints" # Where the models and PNG dashboards are saved
+  
+  # --- Optimizer Settings ---
+  num_epochs: 50
+  learning_rate: 0.001
+  weight_decay: 0.00001       # 1e-5 L2 regularization to prevent overfitting
+  grad_clip: 1.0              # CRITICAL: Prevents GRU gradients from exploding
+  
+  # --- Teacher Forcing Schedule (Used ONLY by Baseline) ---
+  teacher_forcing:
+    start: 1.0                # Start by using 100% ground truth inputs
+    end: 0.0                  # End with 0% (strict autoregression)
+    decay_epochs: 20          # Linearly decay down to 0 over the first 25 epochs
+    
+  # --- Loss Function Weights ---
+  loss_weights:
+    position: 1.0             # Base MSE reconstruction weight
+    turn: 10.0                # HIGH weight to strictly enforce the 20-degree aerodynamic limit
+    kl: 0.1                   # (CVAE only) Keep low to prevent KL-vanishing (Beta-VAE logic)
+    entropy: 0.1              # (Baseline only) Keep low to balance diversity vs accuracy

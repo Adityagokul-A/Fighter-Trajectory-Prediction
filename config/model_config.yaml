@@ -1,0 +1,13 @@
+model:
+  # --- Sequence Lengths ---
+  input_window: 30       # Maximum history (N) fed to the Encoder
+  pred_window: 10        # Maximum future (k) to predict in the Decoder
+  
+  # --- Tensor Dimensions ---
+  input_dim: 14          # 3 Pos + 3 Vel + 3 Accel + Speed + AccelScalar + 2 Cos/Sin + TurnRate
+  hidden_dim: 128        # Size of the GRU hidden state (the context memory)
+  num_layers: 1          # Number of stacked GRU layers
+  
+  # --- Latent / Regime Dimensions ---
+  regime_embed_dim: 32   # Size of the latent space 'z' (CVAE) or regime embedding (Baseline)
+  num_regimes: 6         # Number of discrete modes (Used ONLY by the Baseline model)

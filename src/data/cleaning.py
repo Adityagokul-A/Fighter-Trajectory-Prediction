@@ -2,7 +2,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 # --- CONFIGURATION ---
-FILE_PATH = "dataset/raw/Sample Data.csv"
+FILE_PATH = "dataset/raw/Combined Data.csv"
 OUTPUT_PATH = "dataset/processed/resampled_trajectories.parquet" 
 GAP_SECONDS = 15
 MIN_POINTS_THRESHOLD = 10 # Updated to 10 to ensure stable cubic interpolation

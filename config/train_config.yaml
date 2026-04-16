@@ -16,7 +16,7 @@ training:
   teacher_forcing:
     start: 1.0                # Start by using 100% ground truth inputs
     end: 0.0                  # End with 0% (strict autoregression)
-    decay_epochs: 20          # Linearly decay down to 0 over the first 25 epochs
+    decay_epochs: 20          # Linearly decay down to 0 over the first 20 epochs
     
   # --- Loss Function Weights ---
   loss_weights:

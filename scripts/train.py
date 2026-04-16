@@ -72,6 +72,8 @@ def main():
         num_workers=train_cfg.get("num_workers", 4), pin_memory=True, drop_last=False
     )
 
+    print("Position STD:", dataset.std[dataset.pos_idx])
+    print("Velocity STD:", dataset.std[dataset.kin_idx])
     # -------------------------
     # 3. Model & Loss Initialization
     # -------------------------

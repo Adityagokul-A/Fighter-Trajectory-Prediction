@@ -5,11 +5,13 @@ dataset/
 *.pth
 
 # Model Checkpoints & Logs
-checkpoints/
+checkpoints*/
 logs/
 *.png
 *.jpg
 *.html
+figures/
+inference_plots/
 
 # Python cache
 __pycache__/
